@@ -3,8 +3,8 @@ from typing import List
 
 from fastapi import FastAPI, UploadFile, File
 from dotenv import load_dotenv
-
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
+from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_chroma import Chroma
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -134,3 +134,4 @@ async def chat(query: str, session_id: str = "default"):
     )
 
     return {"answer": response["answer"]}
+
