@@ -3,9 +3,12 @@ from typing import List
 
 from fastapi import FastAPI, UploadFile, File
 from dotenv import load_dotenv
-from langchain.chains.history_aware_retriever import create_history_aware_retriever
-from langchain.chains.retrieval import create_retrieval_chain
+
+# ✅ LangChain v1 imports
+from langchain_core.retrievers import create_history_aware_retriever
+from langchain_core.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
 from langchain_chroma import Chroma
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
@@ -47,10 +50,10 @@ conversational_rag = None
 
 # ---------------- CHAT MEMORY ----------------
 
-def get_history(session) -> BaseChatMessageHistory:
-    if session not in store:
-        store[session] = ChatMessageHistory()
-    return store[session]
+def get_history(session_id) -> BaseChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
 
 # ---------------- UPLOAD ENDPOINT ----------------
 
@@ -60,7 +63,6 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
     global vectorstore, conversational_rag
 
     documents = []
-
     os.makedirs("temp", exist_ok=True)
 
     for file in files:
@@ -70,10 +72,9 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
             f.write(await file.read())
 
         loader = PyPDFLoader(path)
-        docs = loader.load()
-        documents.extend(docs)
+        documents.extend(loader.load())
 
-    if len(documents) == 0:
+    if not documents:
         return {"message": "No readable text found in PDFs"}
 
     splitter = RecursiveCharacterTextSplitter(
@@ -82,9 +83,6 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
     )
 
     splits = splitter.split_documents(documents)
-
-    if len(splits) == 0:
-        return {"message": "No text chunks created"}
 
     vectorstore = Chroma.from_documents(splits, embeddings)
     retriever = vectorstore.as_retriever()
@@ -134,4 +132,3 @@ async def chat(query: str, session_id: str = "default"):
     )
 
     return {"answer": response["answer"]}
-
